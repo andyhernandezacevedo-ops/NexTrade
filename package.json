@@ -1,0 +1,16 @@
+{
+  "name": "nextrade",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "workspaces": [
+    "client",
+    "server"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspaces --if-present",
+    "build": "npm run build --workspace @nextrade/client",
+    "lint": "npm run lint --workspace @nextrade/client",
+    "db:migrate": "npm run db:migrate --workspace @nextrade/server"
+  }
+}
