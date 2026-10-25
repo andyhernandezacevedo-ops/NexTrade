@@ -38,6 +38,9 @@ test('API exposes health and rejects invalid or unauthenticated journal requests
   const privateTrades = await fetch(`${baseUrl}/trades`)
   assert.equal(privateTrades.status, 401)
 
+  const privateAnalytics = await fetch(`${baseUrl}/trades/analytics`)
+  assert.equal(privateAnalytics.status, 401)
+
   const invalidToken = jwt.sign({ id: 'not-a-uuid' }, process.env.JWT_SECRET)
   const invalidSession = await fetch(`${baseUrl}/auth/me`, {
     headers: { Authorization: `Bearer ${invalidToken}` },

@@ -2,7 +2,9 @@ import { z } from 'zod'
 
 const price = z.union([
   z.number().finite().positive().max(999999999999.99999999),
-  z.string().regex(/^\d{1,12}(\.\d{1,8})?$/, 'Introduce un precio positivo con hasta 8 decimales.'),
+  z.string()
+    .regex(/^\d{1,12}(\.\d{1,8})?$/, 'Introduce un precio positivo con hasta 8 decimales.')
+    .refine((value) => Number(value) > 0, 'El precio debe ser mayor que cero.'),
 ])
 
 const optionalPrice = price.nullable().optional()

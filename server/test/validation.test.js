@@ -82,6 +82,7 @@ test('trade schema rejects a close before open and invalid prices', () => {
     exitPrice: '1.09',
     closedAt: '2026-10-25T11:00:00.000Z',
   }).success, false)
+  assert.equal(tradeSchema.safeParse({ ...openTrade, entryPrice: '0' }).success, false)
   assert.equal(tradeSchema.safeParse({ ...openTrade, entryPrice: '-4' }).success, false)
   assert.equal(tradeSchema.safeParse({ ...openTrade, resultR: '1.12345' }).success, false)
 })

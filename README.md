@@ -16,3 +16,8 @@ Node.js 22+ y PostgreSQL.
 El cliente usa Vite en `http://localhost:5173` y la API en `http://localhost:3001`.
 
 `npm test` ejecuta las pruebas del servidor.
+
+El diario autenticado ofrece resumen analítico en `GET /api/trades/analytics`.
+El winrate usa operaciones cerradas; profit factor compara ganancias y pérdidas brutas;
+riesgo/beneficio compara sus promedios. Drawdown y rentabilidad acumulada se calculan
+sobre la curva de resultados R en orden de cierre. No representan importes monetarios.

@@ -9,6 +9,7 @@ import { Eyebrow, Panel, StatusTag } from '../components/ui/Panel.jsx'
 import { useSessionStore } from '../store.js'
 
 const tabs = [
+  { id: 'dashboard', label: 'Resumen' },
   { id: 'trades', label: 'Operaciones' },
   { id: 'strategies', label: 'Estrategias' },
 ]
@@ -185,8 +186,146 @@ function QueryError({ error, onRetry }) {
   )
 }
 
+function MetricBlock({ label, value, note, accent = false }) {
+  return (
+    <div className="border-b border-line px-4 py-4 sm:border-b-0 sm:border-r last:border-r-0">
+      <Eyebrow>{label}</Eyebrow>
+      <p className={`mt-3 font-mono text-2xl tracking-tight ${accent ? 'text-accent' : 'text-copy'}`}>{value}</p>
+      <p className="mt-1 text-xs text-muted">{note}</p>
+    </div>
+  )
+}
+
+function EquityChart({ points, reduceMotion }) {
+  if (points.length === 0) {
+    return (
+      <div className="grid min-h-52 place-items-center border border-dashed border-line text-center">
+        <div>
+          <Eyebrow>Curva de capital</Eyebrow>
+          <p className="mt-2 text-sm text-muted">Cierra una operación con resultado R para iniciar la curva.</p>
+        </div>
+      </div>
+    )
+  }
+
+  const values = points.map((point) => Number(point.equityR))
+  const minimum = Math.min(0, ...values)
+  const maximum = Math.max(0, ...values)
+  const span = maximum - minimum || 1
+  const coordinates = values.map((value, index) => ({
+    x: (index / Math.max(values.length - 1, 1)) * 1000,
+    y: 190 - ((value - minimum) / span) * 160,
+  }))
+  const path = coordinates.map(({ x, y }, index) => `${index ? 'L' : 'M'} ${x} ${y}`).join(' ')
+  const zeroY = 190 - ((0 - minimum) / span) * 160
+
+  return (
+    <div className="border border-line bg-canvas px-3 pb-3 pt-5 sm:px-5">
+      <div className="mb-4 flex items-center justify-between">
+        <Eyebrow>Capital acumulado · R</Eyebrow>
+        <span className="font-mono text-[10px] text-muted">{points.length} operaciones cerradas</span>
+      </div>
+      <svg aria-label="Curva de capital acumulado en múltiplos de riesgo" className="h-52 w-full overflow-visible" preserveAspectRatio="none" role="img" viewBox="0 0 1000 220">
+        {[0, 1, 2, 3].map((step) => (
+          <line className="stroke-line" key={step} opacity="0.7" x1="0" x2="1000" y1={15 + step * 53} y2={15 + step * 53} />
+        ))}
+        <line className="stroke-muted" opacity="0.5" strokeDasharray="4 6" x1="0" x2="1000" y1={zeroY} y2={zeroY} />
+        <motion.path
+          animate={{ pathLength: 1 }}
+          className="fill-none stroke-accent"
+          d={path}
+          initial={reduceMotion ? { pathLength: 1 } : { pathLength: 0 }}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth="3"
+          transition={{ duration: reduceMotion ? 0 : 0.9, ease: 'easeOut' }}
+        />
+        <circle className="fill-accent" cx={coordinates.at(-1).x} cy={coordinates.at(-1).y} r="5" />
+      </svg>
+      <div className="mt-2 flex justify-between font-mono text-[10px] text-muted">
+        <span>{formatDate(points[0].date)}</span>
+        <span>{formatDate(points.at(-1).date)}</span>
+      </div>
+    </div>
+  )
+}
+
+function PerformanceTable({ title, rows, emptyMessage }) {
+  return (
+    <Panel className="overflow-hidden">
+      <div className="border-b border-line px-5 py-4">
+        <Eyebrow>{title}</Eyebrow>
+      </div>
+      {rows.length === 0
+        ? <p className="px-5 py-7 text-sm text-muted">{emptyMessage}</p>
+        : (
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[590px] text-left text-sm">
+              <thead className="font-mono text-[10px] uppercase tracking-wider text-muted">
+                <tr className="border-b border-line">
+                  <th className="px-5 py-3 font-medium">Grupo</th>
+                  <th className="px-4 py-3 text-right font-medium">Cierres</th>
+                  <th className="px-4 py-3 text-right font-medium">Winrate</th>
+                  <th className="px-4 py-3 text-right font-medium">Neto R</th>
+                  <th className="px-4 py-3 text-right font-medium">PF</th>
+                  <th className="px-4 py-3 text-right font-medium">R/B</th>
+                  <th className="px-5 py-3 text-right font-medium">DD máx.</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((row) => (
+                  <tr className="border-b border-line/70 last:border-0" key={`${row.id || 'unassigned'}-${row.name}`}>
+                    <td className="max-w-48 truncate px-5 py-3 font-medium text-copy">{row.name}</td>
+                    <td className="px-4 py-3 text-right font-mono text-xs text-muted">{row.closedTrades}</td>
+                    <td className="px-4 py-3 text-right font-mono text-xs text-muted">{row.winrate == null ? '—' : `${row.winrate}%`}</td>
+                    <td className={`px-4 py-3 text-right font-mono text-xs ${row.cumulativeR >= 0 ? 'text-accent' : 'text-red-300'}`}>{row.cumulativeR > 0 ? '+' : ''}{row.cumulativeR}R</td>
+                    <td className="px-4 py-3 text-right font-mono text-xs text-muted">{row.profitFactor ?? '—'}</td>
+                    <td className="px-4 py-3 text-right font-mono text-xs text-muted">{row.riskReward ?? '—'}</td>
+                    <td className="px-5 py-3 text-right font-mono text-xs text-muted">−{row.maxDrawdownR}R</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+    </Panel>
+  )
+}
+
+function AnalyticsDashboard({ query, reduceMotion }) {
+  if (query.isLoading) {
+    return <div className="px-6 py-12 text-sm text-muted">Calculando métricas desde tu diario…</div>
+  }
+  if (query.error) return <QueryError error={query.error} onRetry={() => query.refetch()} />
+
+  const analytics = query.data
+  const metrics = analytics.metrics
+
+  return (
+    <div className="space-y-5 p-4 sm:p-6">
+      <div className="grid border border-line sm:grid-cols-2 lg:grid-cols-5">
+        <MetricBlock accent label="Winrate" note={`${metrics.closedTrades} operaciones cerradas`} value={metrics.winrate == null ? '—' : `${metrics.winrate}%`} />
+        <MetricBlock label="Profit factor" note="Ganancia bruta / pérdida bruta" value={metrics.profitFactor ?? '—'} />
+        <MetricBlock label="Riesgo / beneficio" note="Promedio ganador / perdedor" value={metrics.riskReward ?? '—'} />
+        <MetricBlock label="Drawdown máximo" note="Caída desde el pico en R" value={`−${metrics.maxDrawdownR}R`} />
+        <MetricBlock accent={metrics.cumulativeR >= 0} label="Rentabilidad acumulada" note={`${analytics.openTrades} operaciones abiertas`} value={`${metrics.cumulativeR > 0 ? '+' : ''}${metrics.cumulativeR}R`} />
+      </div>
+
+      <EquityChart points={analytics.equityCurve} reduceMotion={reduceMotion} />
+
+      <div className="grid gap-5 xl:grid-cols-2">
+        <PerformanceTable emptyMessage="Todavía no hay operaciones cerradas por activo." rows={analytics.byAsset} title="Rendimiento por activo" />
+        <PerformanceTable emptyMessage="Vincula operaciones cerradas a tus estrategias para comparar su rendimiento." rows={analytics.byStrategy} title="Rendimiento por estrategia" />
+      </div>
+      <p className="font-mono text-[10px] leading-5 text-muted">
+        Métricas calculadas en el servidor con operaciones cerradas. El resultado neto y el drawdown se muestran en unidades R; no representan una cuenta ni una rentabilidad monetaria.
+      </p>
+    </div>
+  )
+}
+
 export default function JournalPage() {
-  const [activeTab, setActiveTab] = useState('trades')
+  const [activeTab, setActiveTab] = useState('dashboard')
   const [dialog, setDialog] = useState(null)
   const queryClient = useQueryClient()
   const navigate = useNavigate()
@@ -206,6 +345,10 @@ export default function JournalPage() {
     queryKey: ['strategies', 'mine'],
     queryFn: async () => (await request('/strategies/mine')).strategies,
   })
+  const analyticsQuery = useQuery({
+    queryKey: ['analytics'],
+    queryFn: () => request('/trades/analytics'),
+  })
   const profileMutation = useMutation({
     mutationFn: (data) => request('/auth/me', { method: 'PATCH', body: jsonBody(data) }),
     onSuccess: ({ user: updatedUser }) => {
@@ -218,7 +361,6 @@ export default function JournalPage() {
   const currentUser = profileQuery.data || user
   const trades = tradesQuery.data || []
   const strategies = strategiesQuery.data || []
-  const openTrades = trades.filter((trade) => trade.exitPrice == null).length
 
   const saveTrade = useMutation({
     mutationFn: ({ id, data }) => request(id ? `/trades/${id}` : '/trades', {
@@ -226,13 +368,19 @@ export default function JournalPage() {
       body: jsonBody(data),
     }),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['trades'] })
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['trades'] }),
+        queryClient.invalidateQueries({ queryKey: ['analytics'] }),
+      ])
       setDialog(null)
     },
   })
   const deleteTrade = useMutation({
     mutationFn: (id) => request(`/trades/${id}`, { method: 'DELETE' }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['trades'] }),
+    onSuccess: () => Promise.all([
+      queryClient.invalidateQueries({ queryKey: ['trades'] }),
+      queryClient.invalidateQueries({ queryKey: ['analytics'] }),
+    ]),
   })
   const saveStrategy = useMutation({
     mutationFn: ({ id, data }) => request(id ? `/strategies/${id}` : '/strategies', {
@@ -241,6 +389,7 @@ export default function JournalPage() {
     }),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['strategies', 'mine'] })
+      await queryClient.invalidateQueries({ queryKey: ['analytics'] })
       setDialog(null)
     },
   })
@@ -250,6 +399,7 @@ export default function JournalPage() {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['strategies', 'mine'] }),
         queryClient.invalidateQueries({ queryKey: ['trades'] }),
+        queryClient.invalidateQueries({ queryKey: ['analytics'] }),
       ])
     },
   })
@@ -299,11 +449,11 @@ export default function JournalPage() {
         <div className="mt-7 grid gap-px border border-line bg-line sm:grid-cols-3">
           <div className="bg-canvas px-4 py-4">
             <Eyebrow>Operaciones registradas</Eyebrow>
-            <p className="mt-2 font-mono text-2xl text-copy">{tradesQuery.isLoading ? '—' : trades.length}</p>
+            <p className="mt-2 font-mono text-2xl text-copy">{analyticsQuery.isLoading ? '—' : analyticsQuery.data?.totalTrades ?? '—'}</p>
           </div>
           <div className="bg-canvas px-4 py-4">
             <Eyebrow>En seguimiento</Eyebrow>
-            <p className="mt-2 font-mono text-2xl text-accent">{tradesQuery.isLoading ? '—' : openTrades}</p>
+            <p className="mt-2 font-mono text-2xl text-accent">{analyticsQuery.isLoading ? '—' : analyticsQuery.data?.openTrades ?? '—'}</p>
           </div>
           <div className="bg-canvas px-4 py-4">
             <Eyebrow>Mis estrategias</Eyebrow>
@@ -328,10 +478,14 @@ export default function JournalPage() {
               </button>
             ))}
           </div>
-          <Button onClick={() => setDialog({ type: activeTab === 'trades' ? 'trade' : 'strategy' })} type="button">
-            + {activeTab === 'trades' ? 'Añadir operación' : 'Nueva estrategia'}
-          </Button>
+          {activeTab !== 'dashboard' && (
+            <Button onClick={() => setDialog({ type: activeTab === 'trades' ? 'trade' : 'strategy' })} type="button">
+              + {activeTab === 'trades' ? 'Añadir operación' : 'Nueva estrategia'}
+            </Button>
+          )}
         </div>
+
+        {activeTab === 'dashboard' && <AnalyticsDashboard query={analyticsQuery} reduceMotion={reduceMotion} />}
 
         {profileQuery.error && <p className="m-5 border border-red-400/30 bg-red-400/5 px-3 py-2 text-sm text-red-200" role="alert">{profileQuery.error.message}</p>}
         {deleteTrade.error && <p className="m-5 border border-red-400/30 px-3 py-2 text-sm text-red-200" role="alert">{deleteTrade.error.message}</p>}
