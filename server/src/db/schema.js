@@ -125,7 +125,9 @@ export const marketDatasets = pgTable('market_datasets', {
   timeframe: varchar('timeframe', { length: 16 }).notNull(),
   candleCount: integer('candle_count').notNull().default(0),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-})
+}, (table) => [
+  index('market_datasets_user_created_idx').on(table.userId, table.createdAt),
+])
 
 export const marketCandles = pgTable('market_candles', {
   id: uuid('id').defaultRandom().primaryKey(),

@@ -3,6 +3,7 @@ import { Link, Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { Eyebrow, Panel, StatusTag } from './components/ui/Panel.jsx'
 import AuthPage from './pages/AuthPage.jsx'
 import JournalPage from './pages/JournalPage.jsx'
+import LabPage from './pages/LabPage.jsx'
 import { useSessionStore } from './store.js'
 
 const foundations = [
@@ -29,7 +30,7 @@ function FoundationPage() {
         </Link>
         <div className="flex items-center gap-3">
           <StatusTag>Sin ejecución de órdenes</StatusTag>
-          <Link className="hidden text-sm text-muted transition hover:text-accent sm:block" to={token ? '/journal' : '/login'}>
+          <Link className="hidden text-sm text-muted transition hover:text-accent sm:block" to={token ? '/lab' : '/login'}>
             {token ? 'Mi diario' : 'Iniciar sesión'}
           </Link>
         </div>
@@ -50,9 +51,9 @@ function FoundationPage() {
           <div className="mt-9 flex flex-wrap items-center gap-4">
             <Link
               className="inline-flex min-h-10 items-center justify-center border border-accent bg-accent px-4 py-2 text-sm font-semibold text-canvas transition-colors hover:bg-transparent hover:text-accent"
-              to={token ? '/journal' : '/register'}
+              to={token ? '/lab' : '/register'}
             >
-              {token ? 'Abrir mi diario' : 'Crear cuenta'}
+              {token ? 'Abrir mi laboratorio' : 'Crear cuenta'}
             </Link>
             {!token && <Link className="text-sm font-medium text-muted hover:text-copy" to="/login">Ya tengo cuenta</Link>}
           </div>
@@ -95,6 +96,13 @@ function ProtectedJournal() {
   return <JournalPage />
 }
 
+function ProtectedLab() {
+  const token = useSessionStore((state) => state.token)
+  const location = useLocation()
+  if (!token) return <Navigate to="/login" replace state={{ from: location.pathname }} />
+  return <LabPage />
+}
+
 export default function App() {
   return (
     <Routes>
@@ -102,6 +110,7 @@ export default function App() {
       <Route path="/login" element={<AuthPage mode="login" />} />
       <Route path="/register" element={<AuthPage mode="register" />} />
       <Route path="/journal" element={<ProtectedJournal />} />
+      <Route path="/lab" element={<ProtectedLab />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   )

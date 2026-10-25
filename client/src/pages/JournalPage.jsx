@@ -424,7 +424,10 @@ export default function JournalPage() {
             <span className="font-display text-lg font-semibold tracking-tight text-copy">NEXTRADE</span>
           </Link>
           <span className="hidden h-7 w-px bg-line sm:block" />
-          <span className="hidden font-mono text-[10px] uppercase tracking-[0.18em] text-muted sm:block">Diario de trading</span>
+          <nav aria-label="Navegación del espacio personal" className="flex gap-4 text-sm">
+            <span aria-current="page" className="text-accent">Diario</span>
+            <Link className="text-muted transition hover:text-accent" to="/lab">Laboratorio</Link>
+          </nav>
         </div>
         <div className="flex items-center gap-3">
           <Button className="min-h-9 px-3 text-xs" disabled={!currentUser} onClick={() => setDialog({ type: 'profile' })} type="button" variant="quiet">

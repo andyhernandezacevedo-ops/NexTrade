@@ -28,3 +28,19 @@ export async function request(path, options = {}) {
 export function jsonBody(data) {
   return JSON.stringify(data)
 }
+
+export async function uploadFile(path, formData) {
+  const token = useSessionStore.getState().token
+  const response = await fetch(`/api${path}`, {
+    method: 'POST',
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    body: formData,
+  })
+  if (response.status === 204) return null
+  const payload = await response.json()
+  if (response.status === 401) useSessionStore.getState().clearSession()
+  if (!response.ok) {
+    throw new Error(payload.error || `La solicitud falló (${response.status}).`)
+  }
+  return payload
+}

@@ -81,3 +81,81 @@ export const tradeSchema = z.object({
     })
   }
 })
+
+const candlePrice = z.string()
+  .regex(/^\d{1,12}(\.\d{1,8})?$/, 'El precio debe tener hasta 12 enteros y 8 decimales.')
+  .refine((value) => Number.isFinite(Number(value)) && Number(value) > 0, 'El precio debe ser mayor que cero.')
+
+const candleVolume = z.string()
+  .regex(/^\d{1,16}(\.\d{1,8})?$/, 'El volumen debe tener hasta 16 enteros y 8 decimales.')
+  .refine((value) => Number.isFinite(Number(value)) && Number(value) >= 0, 'El volumen no puede ser negativo.')
+
+export const marketCandlesSchema = z.array(z.object({
+  time: z.string().datetime({ offset: true }),
+  open: candlePrice,
+  high: candlePrice,
+  low: candlePrice,
+  close: candlePrice,
+  volume: candleVolume.nullable().optional(),
+}).superRefine((candle, context) => {
+  const open = Number(candle.open)
+  const high = Number(candle.high)
+  const low = Number(candle.low)
+  const close = Number(candle.close)
+
+  if (high < Math.max(open, low, close)) {
+    context.addIssue({ code: 'custom', path: ['high'], message: 'El máximo debe cubrir apertura, cierre y mínimo.' })
+  }
+  if (low > Math.min(open, high, close)) {
+    context.addIssue({ code: 'custom', path: ['low'], message: 'El mínimo debe cubrir apertura, cierre y máximo.' })
+  }
+})).min(2).max(5000)
+
+export const csvDatasetSchema = z.object({
+  asset: z.string().trim().min(1).max(32).transform((value) => value.toUpperCase()),
+  timeframe: z.string().trim().min(1).max(16),
+})
+
+export const publicDatasetSchema = z.object({
+  symbol: z.string().trim().toUpperCase().regex(/^[A-Z0-9]{5,20}$/),
+  timeframe: z.enum(['1m', '5m', '15m', '1h', '4h', '1d', '1w']),
+  limit: z.coerce.number().int().min(100).max(1000).default(500),
+})
+
+const sideSchema = z.enum(['both', 'long', 'short']).default('both')
+
+export const backtestRuleSchema = z.discriminatedUnion('type', [
+  z.object({
+    type: z.literal('sma_cross'),
+    fastPeriod: z.number().int().min(2).max(200),
+    slowPeriod: z.number().int().min(3).max(500),
+    side: sideSchema,
+  }).refine((rule) => rule.fastPeriod < rule.slowPeriod, {
+    path: ['fastPeriod'],
+    message: 'La media rápida debe ser menor que la media lenta.',
+  }),
+  z.object({
+    type: z.literal('rsi'),
+    period: z.number().int().min(2).max(100),
+    oversold: z.number().int().min(5).max(45),
+    overbought: z.number().int().min(55).max(95),
+    side: sideSchema,
+  }),
+  z.object({
+    type: z.literal('levels'),
+    support: candlePrice,
+    resistance: candlePrice,
+    side: sideSchema,
+  }).refine((rule) => Number(rule.support) < Number(rule.resistance), {
+    path: ['support'],
+    message: 'El soporte debe estar por debajo de la resistencia.',
+  }),
+])
+
+export const createBacktestSchema = z.object({
+  datasetId: z.string().uuid(),
+  strategyId: z.string().uuid().nullable().optional(),
+  rule: backtestRuleSchema,
+})
+
+export const datasetIdParamsSchema = z.object({ datasetId: z.string().uuid() })

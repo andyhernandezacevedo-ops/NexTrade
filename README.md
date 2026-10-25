@@ -21,3 +21,10 @@ El diario autenticado ofrece resumen analítico en `GET /api/trades/analytics`.
 El winrate usa operaciones cerradas; profit factor compara ganancias y pérdidas brutas;
 riesgo/beneficio compara sus promedios. Drawdown y rentabilidad acumulada se calculan
 sobre la curva de resultados R en orden de cierre. No representan importes monetarios.
+
+El laboratorio autenticado está disponible en `/lab`. Permite importar CSV con las
+columnas `timestamp,open,high,low,close` (también acepta `time` o `date`; `volume` es
+opcional) o cargar velas históricas de Binance Spot sin clave. Los datos se guardan por
+usuario y se pueden analizar con cruces SMA, RSI y rebotes en niveles. El simulador usa
+señales al cierre y entradas al abrir la vela siguiente; no incluye comisiones ni
+deslizamiento y nunca envía órdenes.
