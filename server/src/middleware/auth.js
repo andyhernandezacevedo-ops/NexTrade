@@ -19,19 +19,28 @@ export async function requireAuth(req, res, next) {
     if (payload === null || typeof payload !== 'object' || !tokenUserIdSchema.safeParse(payload.id).success) {
       return res.status(401).json({ error: 'La sesión no es válida o ha caducado.' })
     }
-    const [user] = await db.select({ id: users.id, status: users.status })
+    const [user] = await db.select({ id: users.id, status: users.status, role: users.role })
       .from(users)
       .where(eq(users.id, payload.id))
       .limit(1)
     if (!user || user.status !== 'active') {
       return res.status(401).json({ error: 'La sesión no es válida o ha caducado.' })
     }
-    req.user = { id: user.id }
+    req.user = { id: user.id, role: user.role }
     return next()
   } catch (error) {
     if (error instanceof jwt.JsonWebTokenError || error instanceof jwt.TokenExpiredError) {
       return res.status(401).json({ error: 'La sesión no es válida o ha caducado.' })
     }
     return next(error)
+  }
+}
+
+export function requireRole(...roles) {
+  return (req, res, next) => {
+    if (!req.user || !roles.includes(req.user.role)) {
+      return res.status(403).json({ error: 'No tienes permisos para realizar esta acción.' })
+    }
+    return next()
   }
 }

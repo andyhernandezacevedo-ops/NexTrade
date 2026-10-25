@@ -428,6 +428,7 @@ export default function JournalPage() {
             <span aria-current="page" className="text-accent">Diario</span>
             <Link className="text-muted transition hover:text-accent" to="/lab">Laboratorio</Link>
             <Link className="text-muted transition hover:text-accent" to="/community">Comunidad</Link>
+            {(currentUser?.role === 'admin' || currentUser?.role === 'moderator') && <Link className="text-muted transition hover:text-accent" to="/admin">Administración</Link>}
           </nav>
         </div>
         <div className="flex items-center gap-3">

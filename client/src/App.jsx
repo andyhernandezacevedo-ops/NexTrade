@@ -2,6 +2,7 @@ import { motion, useReducedMotion } from 'framer-motion'
 import { Link, Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { Eyebrow, Panel, StatusTag } from './components/ui/Panel.jsx'
 import AuthPage from './pages/AuthPage.jsx'
+import AdminPage from './pages/AdminPage.jsx'
 import CommunityPage from './pages/CommunityPage.jsx'
 import JournalPage from './pages/JournalPage.jsx'
 import LabPage from './pages/LabPage.jsx'
@@ -16,6 +17,7 @@ const foundations = [
 function FoundationPage() {
   const reduceMotion = useReducedMotion()
   const token = useSessionStore((state) => state.token)
+  const role = useSessionStore((state) => state.user?.role)
 
   return (
     <motion.main
@@ -33,6 +35,7 @@ function FoundationPage() {
           <StatusTag>Sin ejecución de órdenes</StatusTag>
           <div className="flex items-center gap-4">
             <Link className="text-sm text-muted transition hover:text-accent" to="/community">Comunidad</Link>
+            {(role === 'admin' || role === 'moderator') && <Link className="text-sm text-muted transition hover:text-accent" to="/admin">Administración</Link>}
             <Link className="hidden text-sm text-muted transition hover:text-accent sm:block" to={token ? '/journal' : '/login'}>
               {token ? 'Mi diario' : 'Iniciar sesión'}
             </Link>
@@ -107,6 +110,13 @@ function ProtectedLab() {
   return <LabPage />
 }
 
+function ProtectedAdmin() {
+  const token = useSessionStore((state) => state.token)
+  const location = useLocation()
+  if (!token) return <Navigate to="/login" replace state={{ from: location.pathname }} />
+  return <AdminPage />
+}
+
 export default function App() {
   return (
     <Routes>
@@ -116,6 +126,7 @@ export default function App() {
       <Route path="/journal" element={<ProtectedJournal />} />
       <Route path="/lab" element={<ProtectedLab />} />
       <Route path="/community" element={<CommunityPage />} />
+      <Route path="/admin" element={<ProtectedAdmin />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   )

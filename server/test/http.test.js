@@ -72,6 +72,12 @@ test('API exposes health and rejects invalid or unauthenticated journal requests
   })
   assert.equal(privateCommunityVote.status, 401)
 
+  const privateAdminQueue = await fetch(`${baseUrl}/admin/posts`)
+  assert.equal(privateAdminQueue.status, 401)
+
+  const privateAdminUsers = await fetch(`${baseUrl}/admin/users`)
+  assert.equal(privateAdminUsers.status, 401)
+
   const privateStrategyCopy = await fetch(`${baseUrl}/strategies/00000000-0000-4000-8000-000000000001/copy`, {
     method: 'POST',
   })

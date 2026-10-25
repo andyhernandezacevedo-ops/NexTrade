@@ -14,7 +14,10 @@ async function withMetrics(strategy) {
 }
 
 router.get('/', async (req, res) => {
-  const filters = [eq(strategies.isPublished, true)]
+  const filters = [
+    eq(strategies.isPublished, true),
+    eq(strategies.moderationStatus, 'approved'),
+  ]
   if (req.query.asset) filters.push(eq(strategies.asset, String(req.query.asset).toUpperCase()))
   if (req.query.timeframe) filters.push(eq(strategies.timeframe, String(req.query.timeframe)))
 
@@ -67,7 +70,11 @@ router.get('/profiles/:username', async (req, res) => {
     username: users.username,
   }).from(strategies)
     .innerJoin(users, eq(strategies.userId, users.id))
-    .where(and(eq(strategies.userId, user.id), eq(strategies.isPublished, true)))
+    .where(and(
+      eq(strategies.userId, user.id),
+      eq(strategies.isPublished, true),
+      eq(strategies.moderationStatus, 'approved'),
+    ))
     .orderBy(desc(strategies.createdAt))
 
   return res.json({ user, strategies: await Promise.all(published.map(withMetrics)) })
@@ -87,7 +94,11 @@ router.get('/:strategyId', validate(strategyIdParamsSchema, 'params'), async (re
     username: users.username,
   }).from(strategies)
     .innerJoin(users, eq(strategies.userId, users.id))
-    .where(and(eq(strategies.id, req.params.strategyId), eq(strategies.isPublished, true)))
+    .where(and(
+      eq(strategies.id, req.params.strategyId),
+      eq(strategies.isPublished, true),
+      eq(strategies.moderationStatus, 'approved'),
+    ))
     .limit(1)
   if (!strategy) return res.status(404).json({ error: 'La estrategia no existe o no es pública.' })
   return res.json({ strategy: await withMetrics(strategy) })

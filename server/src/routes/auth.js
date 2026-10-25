@@ -21,6 +21,7 @@ function publicUser(user) {
     username: user.username,
     bio: user.bio,
     avatarUrl: user.avatarUrl,
+    role: user.role,
   }
 }
 
@@ -57,6 +58,7 @@ router.get('/me', requireAuth, async (req, res) => {
     username: users.username,
     bio: users.bio,
     avatarUrl: users.avatarUrl,
+    role: users.role,
   }).from(users).where(eq(users.id, req.user.id)).limit(1)
   if (!user) return res.status(401).json({ error: 'La cuenta ya no está disponible.' })
   return res.json({ user })
@@ -73,6 +75,7 @@ router.patch('/me', requireAuth, validate(profileSchema), async (req, res) => {
         username: users.username,
         bio: users.bio,
         avatarUrl: users.avatarUrl,
+        role: users.role,
       })
     if (!user) return res.status(404).json({ error: 'No se encontró la cuenta.' })
     return res.json({ user })

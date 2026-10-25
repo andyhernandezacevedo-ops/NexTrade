@@ -33,4 +33,17 @@ La comunidad pública está disponible en `/community`: permite publicar ideas o
 estrategias del diario, votar, comentar y copiar estrategias al espacio privado. Las
 métricas de las ideas usan operaciones cerradas del autor; las de estrategias, las
 operaciones cerradas asociadas a esa estrategia. Los resultados se calculan en el
-servidor en unidades R.
+servidor en unidades R. Las publicaciones nuevas requieren aprobación de moderación
+antes de aparecer en el feed.
+
+La consola restringida está en `/admin`. Moderadores y administradores pueden revisar
+publicaciones; solo administradores pueden suspender o reactivar cuentas de miembros.
+Para habilitar el primer administrador, crea la cuenta normalmente y promueve su correo
+de forma controlada en PostgreSQL:
+
+```sql
+UPDATE users SET role = 'admin' WHERE email = 'admin@example.com';
+```
+
+No existe un endpoint público para elevar privilegios. Las cuentas de administrador no
+se pueden suspender desde la consola para evitar el bloqueo accidental del acceso.

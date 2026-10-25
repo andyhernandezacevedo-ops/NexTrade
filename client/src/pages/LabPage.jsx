@@ -261,6 +261,7 @@ export default function LabPage() {
             <Link className="text-muted transition hover:text-accent" to="/journal">Diario</Link>
             <span aria-current="page" className="text-accent">Laboratorio</span>
             <Link className="text-muted transition hover:text-accent" to="/community">Comunidad</Link>
+            {(user?.role === 'admin' || user?.role === 'moderator') && <Link className="text-muted transition hover:text-accent" to="/admin">Administración</Link>}
           </nav>
         </div>
         <div className="flex items-center gap-3">

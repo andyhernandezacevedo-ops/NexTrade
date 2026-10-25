@@ -54,6 +54,13 @@ export const communityPostSchema = z.object({
       message: 'Selecciona una estrategia propia para compartir.',
     })
   }
+  if (post.kind === 'idea' && post.strategyId) {
+    context.addIssue({
+      code: 'custom',
+      path: ['strategyId'],
+      message: 'Las ideas no pueden enlazar una estrategia del diario.',
+    })
+  }
 })
 
 export const communityFeedQuerySchema = z.object({
@@ -63,6 +70,16 @@ export const communityFeedQuerySchema = z.object({
 export const communityPostIdParamsSchema = z.object({ postId: z.string().uuid() })
 export const voteSchema = z.object({ value: z.union([z.literal(-1), z.literal(1)]) })
 export const communityCommentSchema = z.object({ content: z.string().trim().min(1).max(2000) })
+export const moderationSchema = z.object({ status: z.enum(['approved', 'rejected']) })
+export const adminPostQuerySchema = z.object({
+  status: z.enum(['pending', 'approved', 'rejected']).default('pending'),
+})
+export const adminUserQuerySchema = z.object({
+  status: z.enum(['active', 'suspended']).optional(),
+  search: z.string().trim().max(64).optional(),
+})
+export const accountStatusSchema = z.object({ status: z.enum(['active', 'suspended']) })
+export const adminUserIdParamsSchema = z.object({ userId: z.string().uuid() })
 
 export const tradeSchema = z.object({
   strategyId: z.string().uuid().nullable().optional(),

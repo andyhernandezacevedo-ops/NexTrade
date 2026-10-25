@@ -105,7 +105,7 @@ router.post('/posts', requireAuth, validate(communityPostSchema), async (req, re
   const [post] = await db.transaction(async (tx) => {
     if (strategyId) {
       await tx.update(strategies)
-        .set({ isPublished: true, moderationStatus: 'approved', updatedAt: new Date() })
+        .set({ isPublished: false, moderationStatus: 'pending', updatedAt: new Date() })
         .where(and(eq(strategies.id, strategyId), eq(strategies.userId, req.user.id)))
     }
     return tx.insert(communityPosts).values({
@@ -114,8 +114,8 @@ router.post('/posts', requireAuth, validate(communityPostSchema), async (req, re
       kind,
       title,
       content,
-      moderationStatus: 'approved',
-      publishedAt: new Date(),
+      moderationStatus: 'pending',
+      publishedAt: null,
     }).returning({
       id: communityPosts.id,
       kind: communityPosts.kind,

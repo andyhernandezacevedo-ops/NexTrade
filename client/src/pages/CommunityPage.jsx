@@ -192,6 +192,7 @@ export default function CommunityPage() {
   const [notice, setNotice] = useState('')
   const reduceMotion = useReducedMotion()
   const token = useSessionStore((state) => state.token)
+  const user = useSessionStore((state) => state.user)
   const queryClient = useQueryClient()
   const feedQuery = useQuery({
     queryKey: ['community', 'feed', filter],
@@ -206,6 +207,7 @@ export default function CommunityPage() {
     mutationFn: (data) => request('/community/posts', { method: 'POST', body: jsonBody(data) }),
     onSuccess: async () => {
       setComposing(false)
+      setNotice('Publicación enviada a moderación. Aparecerá en el feed cuando sea aprobada.')
       await queryClient.invalidateQueries({ queryKey: ['community', 'feed'] })
     },
   })
@@ -243,6 +245,7 @@ export default function CommunityPage() {
             <Link className="text-muted transition hover:text-accent" to="/journal">Diario</Link>
             <Link className="text-muted transition hover:text-accent" to="/lab">Laboratorio</Link>
             <span aria-current="page" className="text-accent">Comunidad</span>
+            {(user?.role === 'admin' || user?.role === 'moderator') && <Link className="text-muted transition hover:text-accent" to="/admin">Administración</Link>}
           </nav>
         </div>
         {token
@@ -285,7 +288,7 @@ export default function CommunityPage() {
         )}
       </Panel>
 
-      {notice && <p className="mt-4 border border-accent/30 px-4 py-3 text-sm text-accent" role={copyMutation.isError ? 'alert' : 'status'}>{notice}</p>}
+      {notice && <p className={`mt-4 border px-4 py-3 text-sm ${copyMutation.isError ? 'border-red-400/30 text-red-200' : 'border-accent/30 text-accent'}`} role={copyMutation.isError ? 'alert' : 'status'}>{notice}</p>}
       {voteMutation.error && <p className="mt-4 border border-red-400/30 px-4 py-3 text-sm text-red-200" role="alert">{voteMutation.error.message}</p>}
       {feedQuery.error && <p className="mt-4 border border-red-400/30 px-4 py-3 text-sm text-red-200" role="alert">{feedQuery.error.message}</p>}
       {feedQuery.isLoading && <p className="py-10 text-center text-sm text-muted">Cargando el feed…</p>}

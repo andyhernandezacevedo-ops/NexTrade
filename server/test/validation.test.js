@@ -3,6 +3,7 @@ import assert from 'node:assert/strict'
 import {
   communityFeedQuerySchema,
   communityPostSchema,
+  moderationSchema,
   loginSchema,
   profileSchema,
   registerSchema,
@@ -78,8 +79,16 @@ test('community strategies require a diary strategy and posts accept no hand-ent
     title: 'Estrategia pública',
     content: 'Descripción de la estrategia compartida.',
   }).success, false)
+  assert.equal(communityPostSchema.safeParse({
+    kind: 'idea',
+    title: 'Idea de mercado',
+    content: 'Una descripción pública suficientemente larga.',
+    strategyId: '00000000-0000-4000-8000-000000000001',
+  }).success, false)
   assert.deepEqual(communityFeedQuerySchema.parse({ kind: 'idea' }), { kind: 'idea' })
   assert.equal(communityFeedQuerySchema.safeParse({ kind: 'unknown' }).success, false)
+  assert.equal(moderationSchema.safeParse({ status: 'approved' }).success, true)
+  assert.equal(moderationSchema.safeParse({ status: 'pending' }).success, false)
 })
 
 test('community votes accept only a single upvote or downvote value', () => {
