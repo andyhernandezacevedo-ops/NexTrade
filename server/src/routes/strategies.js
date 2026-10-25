@@ -4,7 +4,7 @@ import { db } from '../db/index.js'
 import { strategies, users } from '../db/schema.js'
 import { requireAuth } from '../middleware/auth.js'
 import { validate } from '../middleware/validate.js'
-import { strategySchema } from '../services/validation.js'
+import { strategyIdParamsSchema, strategySchema } from '../services/validation.js'
 import { strategyMetrics } from '../services/metrics.js'
 
 const router = Router()
@@ -36,33 +36,6 @@ router.get('/', async (req, res) => {
   const results = await Promise.all(rows.map(withMetrics))
   if (req.query.sort === 'winrate') results.sort((a, b) => (b.metrics.winrate ?? -1) - (a.metrics.winrate ?? -1))
   return res.json({ strategies: results })
-})
-
-router.get('/:strategyId', async (req, res) => {
-  const [strategy] = await db.select({
-    id: strategies.id,
-    title: strategies.title,
-    description: strategies.description,
-    asset: strategies.asset,
-    timeframe: strategies.timeframe,
-    rules: strategies.rules,
-    isPublished: strategies.isPublished,
-    createdAt: strategies.createdAt,
-    userId: strategies.userId,
-    username: users.username,
-  }).from(strategies)
-    .innerJoin(users, eq(strategies.userId, users.id))
-    .where(and(eq(strategies.id, req.params.strategyId), eq(strategies.isPublished, true)))
-    .limit(1)
-  if (!strategy) return res.status(404).json({ error: 'La estrategia no existe o no es pública.' })
-  return res.json({ strategy: await withMetrics(strategy) })
-})
-
-router.post('/', requireAuth, validate(strategySchema), async (req, res) => {
-  const [strategy] = await db.insert(strategies)
-    .values({ ...req.body, userId: req.user.id })
-    .returning()
-  return res.status(201).json({ strategy })
 })
 
 router.get('/mine', requireAuth, async (req, res) => {
@@ -100,7 +73,34 @@ router.get('/profiles/:username', async (req, res) => {
   return res.json({ user, strategies: await Promise.all(published.map(withMetrics)) })
 })
 
-router.put('/:strategyId', requireAuth, validate(strategySchema), async (req, res) => {
+router.get('/:strategyId', validate(strategyIdParamsSchema, 'params'), async (req, res) => {
+  const [strategy] = await db.select({
+    id: strategies.id,
+    title: strategies.title,
+    description: strategies.description,
+    asset: strategies.asset,
+    timeframe: strategies.timeframe,
+    rules: strategies.rules,
+    isPublished: strategies.isPublished,
+    createdAt: strategies.createdAt,
+    userId: strategies.userId,
+    username: users.username,
+  }).from(strategies)
+    .innerJoin(users, eq(strategies.userId, users.id))
+    .where(and(eq(strategies.id, req.params.strategyId), eq(strategies.isPublished, true)))
+    .limit(1)
+  if (!strategy) return res.status(404).json({ error: 'La estrategia no existe o no es pública.' })
+  return res.json({ strategy: await withMetrics(strategy) })
+})
+
+router.post('/', requireAuth, validate(strategySchema), async (req, res) => {
+  const [strategy] = await db.insert(strategies)
+    .values({ ...req.body, userId: req.user.id })
+    .returning()
+  return res.status(201).json({ strategy })
+})
+
+router.put('/:strategyId', requireAuth, validate(strategyIdParamsSchema, 'params'), validate(strategySchema), async (req, res) => {
   const [strategy] = await db.update(strategies)
     .set({ ...req.body, updatedAt: new Date() })
     .where(and(eq(strategies.id, req.params.strategyId), eq(strategies.userId, req.user.id)))
@@ -109,7 +109,7 @@ router.put('/:strategyId', requireAuth, validate(strategySchema), async (req, re
   return res.json({ strategy })
 })
 
-router.delete('/:strategyId', requireAuth, async (req, res) => {
+router.delete('/:strategyId', requireAuth, validate(strategyIdParamsSchema, 'params'), async (req, res) => {
   const [strategy] = await db.delete(strategies)
     .where(and(eq(strategies.id, req.params.strategyId), eq(strategies.userId, req.user.id)))
     .returning({ id: strategies.id })

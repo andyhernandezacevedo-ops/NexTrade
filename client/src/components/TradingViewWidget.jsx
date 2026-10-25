@@ -8,10 +8,11 @@ export default function TradingViewWidget({ symbol = 'NASDAQ:AAPL', interval = '
 
   useEffect(() => {
     let active = true
+    const container = containerRef.current
 
     function mountWidget() {
-      if (!active || !containerRef.current || !window.TradingView) return
-      containerRef.current.replaceChildren()
+      if (!active || !container || !window.TradingView) return
+      container.replaceChildren()
       new window.TradingView.widget({
         autosize: true,
         symbol,
@@ -23,7 +24,7 @@ export default function TradingViewWidget({ symbol = 'NASDAQ:AAPL', interval = '
         enable_publishing: false,
         hide_top_toolbar: false,
         save_image: false,
-        container_id: containerRef.current.id,
+        container_id: container.id,
       })
     }
 
@@ -45,7 +46,7 @@ export default function TradingViewWidget({ symbol = 'NASDAQ:AAPL', interval = '
     return () => {
       active = false
       script?.removeEventListener('load', mountWidget)
-      containerRef.current?.replaceChildren()
+      container?.replaceChildren()
     }
   }, [symbol, interval])
 

@@ -67,6 +67,9 @@ export const trades = pgTable('trades', {
   openedAt: timestamp('opened_at', { withTimezone: true }).notNull(),
   closedAt: timestamp('closed_at', { withTimezone: true }),
 }, (table) => [
+  check('trades_closed_fields_check', sql`(${table.exitPrice} IS NULL) = (${table.closedAt} IS NULL)`),
+  check('trades_result_requires_close', sql`${table.resultR} IS NULL OR ${table.exitPrice} IS NOT NULL`),
+  check('trades_close_after_open', sql`${table.closedAt} IS NULL OR ${table.closedAt} >= ${table.openedAt}`),
   index('trades_user_opened_idx').on(table.userId, table.openedAt),
   index('trades_strategy_idx').on(table.strategyId),
 ])

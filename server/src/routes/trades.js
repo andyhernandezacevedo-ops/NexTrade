@@ -4,7 +4,7 @@ import { db } from '../db/index.js'
 import { strategies, trades } from '../db/schema.js'
 import { requireAuth } from '../middleware/auth.js'
 import { validate } from '../middleware/validate.js'
-import { tradeSchema } from '../services/validation.js'
+import { tradeIdParamsSchema, tradeSchema } from '../services/validation.js'
 import { calculateMetrics } from '../services/metrics.js'
 
 const router = Router()
@@ -26,9 +26,8 @@ async function verifyStrategyAccess(strategyId, userId) {
   if (!strategyId) return true
   const [strategy] = await db.select({
     userId: strategies.userId,
-    isPublished: strategies.isPublished,
   }).from(strategies).where(eq(strategies.id, strategyId)).limit(1)
-  return Boolean(strategy && (strategy.userId === userId || strategy.isPublished))
+  return Boolean(strategy && strategy.userId === userId)
 }
 
 router.use(requireAuth)
@@ -69,7 +68,7 @@ router.get('/dashboard', async (req, res) => {
 
 router.post('/', validate(tradeSchema), async (req, res) => {
   if (!(await verifyStrategyAccess(req.body.strategyId, req.user.id))) {
-    return res.status(400).json({ error: 'Solo puedes vincular una estrategia propia o pública.' })
+    return res.status(400).json({ error: 'Solo puedes vincular una estrategia propia.' })
   }
   const [trade] = await db.insert(trades)
     .values({ ...valuesForDatabase(req.body), userId: req.user.id })
@@ -77,9 +76,9 @@ router.post('/', validate(tradeSchema), async (req, res) => {
   return res.status(201).json({ trade })
 })
 
-router.put('/:tradeId', validate(tradeSchema), async (req, res) => {
+router.put('/:tradeId', validate(tradeIdParamsSchema, 'params'), validate(tradeSchema), async (req, res) => {
   if (!(await verifyStrategyAccess(req.body.strategyId, req.user.id))) {
-    return res.status(400).json({ error: 'Solo puedes vincular una estrategia propia o pública.' })
+    return res.status(400).json({ error: 'Solo puedes vincular una estrategia propia.' })
   }
   const [trade] = await db.update(trades)
     .set(valuesForDatabase(req.body))
@@ -89,7 +88,7 @@ router.put('/:tradeId', validate(tradeSchema), async (req, res) => {
   return res.json({ trade })
 })
 
-router.delete('/:tradeId', async (req, res) => {
+router.delete('/:tradeId', validate(tradeIdParamsSchema, 'params'), async (req, res) => {
   const [trade] = await db.delete(trades)
     .where(and(eq(trades.id, req.params.tradeId), eq(trades.userId, req.user.id)))
     .returning({ id: trades.id })

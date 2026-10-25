@@ -13,6 +13,18 @@ export async function request(path, options = {}) {
 
   if (response.status === 204) return null
   const payload = await response.json()
-  if (!response.ok) throw new Error(payload.error || 'No se pudo completar la solicitud.')
+  if (response.status === 401) {
+    useSessionStore.getState().clearSession()
+  }
+  if (!response.ok) {
+    const details = payload.details
+      ?.map(({ field, message }) => `${field}: ${message}`)
+      .join('\n')
+    throw new Error([payload.error, details].filter(Boolean).join('\n') || `La solicitud falló (${response.status}).`)
+  }
   return payload
+}
+
+export function jsonBody(data) {
+  return JSON.stringify(data)
 }
