@@ -51,6 +51,32 @@ test('API exposes health and rejects invalid or unauthenticated journal requests
   })
   assert.equal(privateBacktest.status, 401)
 
+  const invalidCommunityFilter = await fetch(`${baseUrl}/community/feed?kind=invalid`)
+  assert.equal(invalidCommunityFilter.status, 400)
+
+  const privateCommunityPost = await fetch(`${baseUrl}/community/posts`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      kind: 'idea',
+      title: 'Idea pública',
+      content: 'Una descripción pública suficientemente larga.',
+    }),
+  })
+  assert.equal(privateCommunityPost.status, 401)
+
+  const privateCommunityVote = await fetch(`${baseUrl}/community/posts/00000000-0000-4000-8000-000000000001/vote`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ value: 1 }),
+  })
+  assert.equal(privateCommunityVote.status, 401)
+
+  const privateStrategyCopy = await fetch(`${baseUrl}/strategies/00000000-0000-4000-8000-000000000001/copy`, {
+    method: 'POST',
+  })
+  assert.equal(privateStrategyCopy.status, 401)
+
   const invalidToken = jwt.sign({ id: 'not-a-uuid' }, process.env.JWT_SECRET)
   const invalidSession = await fetch(`${baseUrl}/auth/me`, {
     headers: { Authorization: `Bearer ${invalidToken}` },

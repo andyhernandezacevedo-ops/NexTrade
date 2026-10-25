@@ -2,6 +2,7 @@ import { motion, useReducedMotion } from 'framer-motion'
 import { Link, Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { Eyebrow, Panel, StatusTag } from './components/ui/Panel.jsx'
 import AuthPage from './pages/AuthPage.jsx'
+import CommunityPage from './pages/CommunityPage.jsx'
 import JournalPage from './pages/JournalPage.jsx'
 import LabPage from './pages/LabPage.jsx'
 import { useSessionStore } from './store.js'
@@ -30,15 +31,18 @@ function FoundationPage() {
         </Link>
         <div className="flex items-center gap-3">
           <StatusTag>Sin ejecución de órdenes</StatusTag>
-          <Link className="hidden text-sm text-muted transition hover:text-accent sm:block" to={token ? '/lab' : '/login'}>
-            {token ? 'Mi diario' : 'Iniciar sesión'}
-          </Link>
+          <div className="flex items-center gap-4">
+            <Link className="text-sm text-muted transition hover:text-accent" to="/community">Comunidad</Link>
+            <Link className="hidden text-sm text-muted transition hover:text-accent sm:block" to={token ? '/journal' : '/login'}>
+              {token ? 'Mi diario' : 'Iniciar sesión'}
+            </Link>
+          </div>
         </div>
       </header>
 
       <section className="grid flex-1 content-center gap-12 py-16 lg:grid-cols-[1.15fr_0.85fr] lg:gap-20">
         <div className="max-w-3xl">
-          <Eyebrow>Tu registro · Fase 1</Eyebrow>
+          <Eyebrow>Registro · análisis · comunidad</Eyebrow>
           <h1 className="mt-6 font-display text-5xl font-medium leading-[1.04] tracking-[-0.055em] text-copy sm:text-7xl">
             El método
             <br />
@@ -111,6 +115,7 @@ export default function App() {
       <Route path="/register" element={<AuthPage mode="register" />} />
       <Route path="/journal" element={<ProtectedJournal />} />
       <Route path="/lab" element={<ProtectedLab />} />
+      <Route path="/community" element={<CommunityPage />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   )

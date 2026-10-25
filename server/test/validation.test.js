@@ -1,11 +1,14 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import {
+  communityFeedQuerySchema,
+  communityPostSchema,
   loginSchema,
   profileSchema,
   registerSchema,
   strategySchema,
   tradeSchema,
+  voteSchema,
 } from '../src/services/validation.js'
 
 const openTrade = {
@@ -60,6 +63,29 @@ test('strategies remain private and normalize the asset', () => {
   })
   assert.equal(result.asset, 'EURUSD')
   assert.equal('isPublished' in result, false)
+})
+
+test('community strategies require a diary strategy and posts accept no hand-entered metrics', () => {
+  const idea = communityPostSchema.parse({
+    kind: 'idea',
+    title: 'Idea de mercado',
+    content: 'Contexto suficiente para compartir esta idea.',
+    winrate: 99,
+  })
+  assert.equal('winrate' in idea, false)
+  assert.equal(communityPostSchema.safeParse({
+    kind: 'strategy',
+    title: 'Estrategia pública',
+    content: 'Descripción de la estrategia compartida.',
+  }).success, false)
+  assert.deepEqual(communityFeedQuerySchema.parse({ kind: 'idea' }), { kind: 'idea' })
+  assert.equal(communityFeedQuerySchema.safeParse({ kind: 'unknown' }).success, false)
+})
+
+test('community votes accept only a single upvote or downvote value', () => {
+  assert.deepEqual(voteSchema.parse({ value: 1 }), { value: 1 })
+  assert.deepEqual(voteSchema.parse({ value: -1 }), { value: -1 })
+  assert.equal(voteSchema.safeParse({ value: 2 }).success, false)
 })
 
 test('trade schema accepts an open operation', () => {

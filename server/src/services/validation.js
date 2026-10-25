@@ -41,6 +41,29 @@ export const strategySchema = z.object({
   rules: z.string().trim().max(10000).default(''),
 })
 
+export const communityPostSchema = z.object({
+  kind: z.enum(['strategy', 'idea']),
+  title: z.string().trim().min(3).max(160),
+  content: z.string().trim().min(10).max(10000),
+  strategyId: z.string().uuid().nullable().optional(),
+}).superRefine((post, context) => {
+  if (post.kind === 'strategy' && !post.strategyId) {
+    context.addIssue({
+      code: 'custom',
+      path: ['strategyId'],
+      message: 'Selecciona una estrategia propia para compartir.',
+    })
+  }
+})
+
+export const communityFeedQuerySchema = z.object({
+  kind: z.enum(['strategy', 'idea']).optional(),
+})
+
+export const communityPostIdParamsSchema = z.object({ postId: z.string().uuid() })
+export const voteSchema = z.object({ value: z.union([z.literal(-1), z.literal(1)]) })
+export const communityCommentSchema = z.object({ content: z.string().trim().min(1).max(2000) })
+
 export const tradeSchema = z.object({
   strategyId: z.string().uuid().nullable().optional(),
   asset: z.string().trim().min(1).max(32).transform((value) => value.toUpperCase()),

@@ -28,3 +28,9 @@ opcional) o cargar velas históricas de Binance Spot sin clave. Los datos se gua
 usuario y se pueden analizar con cruces SMA, RSI y rebotes en niveles. El simulador usa
 señales al cierre y entradas al abrir la vela siguiente; no incluye comisiones ni
 deslizamiento y nunca envía órdenes.
+
+La comunidad pública está disponible en `/community`: permite publicar ideas o
+estrategias del diario, votar, comentar y copiar estrategias al espacio privado. Las
+métricas de las ideas usan operaciones cerradas del autor; las de estrategias, las
+operaciones cerradas asociadas a esa estrategia. Los resultados se calculan en el
+servidor en unidades R.

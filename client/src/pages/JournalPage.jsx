@@ -427,6 +427,7 @@ export default function JournalPage() {
           <nav aria-label="Navegación del espacio personal" className="flex gap-4 text-sm">
             <span aria-current="page" className="text-accent">Diario</span>
             <Link className="text-muted transition hover:text-accent" to="/lab">Laboratorio</Link>
+            <Link className="text-muted transition hover:text-accent" to="/community">Comunidad</Link>
           </nav>
         </div>
         <div className="flex items-center gap-3">

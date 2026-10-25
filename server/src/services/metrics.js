@@ -179,6 +179,60 @@ export async function strategyMetrics(strategyId) {
   return formatSummary(rows[0])
 }
 
+export async function publicAuthorMetrics(userIds) {
+  if (userIds.length === 0) return new Map()
+  const query = `
+    WITH closed_trades AS (
+      SELECT
+        t.id,
+        t.user_id,
+        COALESCE(t.result_r, 0)::numeric AS result_r,
+        COALESCE(t.closed_at, t.opened_at) AS closed_at
+      FROM trades t
+      WHERE t.exit_price IS NOT NULL
+        AND t.user_id = ANY($1::uuid[])
+    ),
+    equity AS (
+      SELECT
+        closed_trades.*,
+        SUM(result_r) OVER (PARTITION BY user_id ORDER BY closed_at, id) AS equity_r
+      FROM closed_trades
+    ),
+    drawdowns AS (
+      SELECT
+        equity.*,
+        GREATEST(0, MAX(equity_r) OVER (
+          PARTITION BY user_id ORDER BY closed_at, id ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+        )) - equity_r AS drawdown_r
+      FROM equity
+    )
+    SELECT
+      user_id AS id,
+      COUNT(*)::int AS "closedTrades",
+      ROUND(COUNT(*) FILTER (WHERE result_r > 0)::numeric * 100 / COUNT(*), 1) AS winrate,
+      ROUND(
+        SUM(result_r) FILTER (WHERE result_r > 0)
+        / NULLIF(ABS(SUM(result_r) FILTER (WHERE result_r < 0)), 0),
+        2
+      ) AS "profitFactor",
+      ROUND(
+        (SUM(result_r) FILTER (WHERE result_r > 0) / NULLIF(COUNT(*) FILTER (WHERE result_r > 0), 0))
+        / NULLIF(
+          ABS(SUM(result_r) FILTER (WHERE result_r < 0))
+          / NULLIF(COUNT(*) FILTER (WHERE result_r < 0), 0),
+          0
+        ),
+        2
+      ) AS "riskReward",
+      ROUND(COALESCE(MAX(drawdown_r), 0), 2) AS "maxDrawdownR",
+      ROUND(SUM(result_r), 2) AS "cumulativeR"
+    FROM drawdowns
+    GROUP BY user_id
+  `
+  const { rows } = await pool.query(query, [userIds])
+  return new Map(rows.map((row) => [row.id, formatSummary(row)]))
+}
+
 export async function getUserAnalytics(userId) {
   const [summary, equityCurve, byAsset, byStrategy, counts] = await Promise.all([
     getSummary(userId),

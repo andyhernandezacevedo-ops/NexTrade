@@ -1,7 +1,7 @@
 import { Router } from 'express'
 import { and, desc, eq } from 'drizzle-orm'
 import { db } from '../db/index.js'
-import { strategies, users } from '../db/schema.js'
+import { communityPosts, strategies, users } from '../db/schema.js'
 import { requireAuth } from '../middleware/auth.js'
 import { validate } from '../middleware/validate.js'
 import { strategyIdParamsSchema, strategySchema } from '../services/validation.js'
@@ -100,6 +100,38 @@ router.post('/', requireAuth, validate(strategySchema), async (req, res) => {
   return res.status(201).json({ strategy })
 })
 
+router.post('/:strategyId/copy', requireAuth, validate(strategyIdParamsSchema, 'params'), async (req, res) => {
+  const [source] = await db.select({
+    id: strategies.id,
+    userId: strategies.userId,
+    title: strategies.title,
+    description: strategies.description,
+    asset: strategies.asset,
+    timeframe: strategies.timeframe,
+    rules: strategies.rules,
+  }).from(strategies)
+    .where(and(
+      eq(strategies.id, req.params.strategyId),
+      eq(strategies.isPublished, true),
+      eq(strategies.moderationStatus, 'approved'),
+    ))
+    .limit(1)
+  if (!source) return res.status(404).json({ error: 'La estrategia no existe o no está disponible para copiar.' })
+
+  const [strategy] = await db.insert(strategies).values({
+    userId: req.user.id,
+    clonedFromId: source.id,
+    title: `Copia de ${source.title}`.slice(0, 120),
+    description: source.description,
+    asset: source.asset,
+    timeframe: source.timeframe,
+    rules: source.rules,
+    isPublished: false,
+    moderationStatus: 'pending',
+  }).returning()
+  return res.status(201).json({ strategy })
+})
+
 router.put('/:strategyId', requireAuth, validate(strategyIdParamsSchema, 'params'), validate(strategySchema), async (req, res) => {
   const [strategy] = await db.update(strategies)
     .set({ ...req.body, updatedAt: new Date() })
@@ -110,9 +142,18 @@ router.put('/:strategyId', requireAuth, validate(strategyIdParamsSchema, 'params
 })
 
 router.delete('/:strategyId', requireAuth, validate(strategyIdParamsSchema, 'params'), async (req, res) => {
-  const [strategy] = await db.delete(strategies)
-    .where(and(eq(strategies.id, req.params.strategyId), eq(strategies.userId, req.user.id)))
-    .returning({ id: strategies.id })
+  const strategy = await db.transaction(async (tx) => {
+    const [owned] = await tx.select({ id: strategies.id })
+      .from(strategies)
+      .where(and(eq(strategies.id, req.params.strategyId), eq(strategies.userId, req.user.id)))
+      .limit(1)
+    if (!owned) return null
+    await tx.delete(communityPosts).where(eq(communityPosts.strategyId, owned.id))
+    const [deleted] = await tx.delete(strategies)
+      .where(and(eq(strategies.id, owned.id), eq(strategies.userId, req.user.id)))
+      .returning({ id: strategies.id })
+    return deleted || null
+  })
   if (!strategy) return res.status(404).json({ error: 'No se encontró una estrategia propia con ese identificador.' })
   return res.status(204).end()
 })

@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 
 process.env.DATABASE_URL ||= 'postgres://localhost:5432/nextrade'
 
-const [{ pool }, { getUserAnalytics, strategyMetrics }] = await Promise.all([
+const [{ pool }, { getUserAnalytics, publicAuthorMetrics, strategyMetrics }] = await Promise.all([
   import('../src/db/index.js'),
   import('../src/services/metrics.js'),
 ])
@@ -83,13 +83,47 @@ test('public strategy metrics are also calculated by SQL', async () => {
     capturedValues = values
     return { rows: [summary] }
   })
-
   try {
     const result = await strategyMetrics('strategy-id')
     assert.equal(result.cumulativeR, 1)
     assert.match(capturedQuery, /t\.strategy_id = \$1/)
     assert.match(capturedQuery, /SUM\(result_r\) OVER/)
     assert.deepEqual(capturedValues, ['strategy-id'])
+  } finally {
+    restore()
+  }
+})
+
+test('community author metrics use the registered closed-trade history in one grouped query', async () => {
+  let capturedQuery
+  let capturedValues
+  const restore = mockQueries(async (query, values) => {
+    capturedQuery = query
+    capturedValues = values
+    return {
+      rows: [{
+        id: 'author-id',
+        ...summary,
+      }],
+    }
+  })
+
+  try {
+    const result = await publicAuthorMetrics(['author-id', 'other-author'])
+    assert.deepEqual(capturedValues, [['author-id', 'other-author']])
+    assert.match(capturedQuery, /t\.user_id = ANY\(\$1::uuid\[\]\)/)
+    assert.match(capturedQuery, /t\.exit_price IS NOT NULL/)
+    assert.match(capturedQuery, /PARTITION BY user_id/)
+    assert.deepEqual(result.get('author-id'), {
+      closedTrades: 4,
+      winrate: 50,
+      profitFactor: 1.5,
+      riskReward: 1.5,
+      maxDrawdownR: 1,
+      cumulativeR: 1,
+    })
+    assert.equal(result.has('other-author'), false)
+    assert.equal((await publicAuthorMetrics([])).size, 0)
   } finally {
     restore()
   }
