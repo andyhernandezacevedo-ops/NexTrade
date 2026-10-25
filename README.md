@@ -17,6 +17,26 @@ El cliente usa Vite en `http://localhost:5173` y la API en `http://localhost:300
 
 `npm test` ejecuta las pruebas del servidor.
 
+## Despliegue en Vercel
+
+El archivo `vercel.json` define dos servicios dentro del mismo proyecto Vercel:
+
+- `client` (`client/`, Vite) recibe las rutas de la aplicación web.
+- `server` (`server/`, Express) recibe las rutas `/api/*`.
+
+El servicio Vite reescribe rutas del cliente a `index.html` para admitir las rutas
+profundas de React Router al abrirlas o recargarlas directamente.
+
+Configura `DATABASE_URL` y `JWT_SECRET` en las variables de entorno del servicio
+`server` para cada entorno de Vercel. Aplica las migraciones de PostgreSQL antes de
+usar la aplicación. El cliente utiliza rutas relativas `/api`, por lo que las llamadas
+se enrutan por el rewrite sin URL de backend codificada.
+
+Para desarrollo integrado local, ejecuta `vercel dev` desde la raíz con la CLI de
+Vercel instalada. Las bindings no están configuradas: el cliente llama al endpoint
+público `/api` desde el navegador y el servidor solo accede a PostgreSQL y a la API
+pública de datos de mercado; no hay llamadas servidor-a-servidor entre servicios Vercel.
+
 El diario autenticado ofrece resumen analítico en `GET /api/trades/analytics`.
 El winrate usa operaciones cerradas; profit factor compara ganancias y pérdidas brutas;
 riesgo/beneficio compara sus promedios. Drawdown y rentabilidad acumulada se calculan
